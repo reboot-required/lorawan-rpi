@@ -12,8 +12,8 @@ This repository contains a small LoRaWAN-inspired packet layer
 ```text
 ┌──────────────┐           LoRa 868 MHz            ┌──────────────┐
 │ Raspberry Pi │  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  │ Raspberry Pi │
-│   (Node)     │──── RFM95 + antenna ──────────── │  (Gateway)   │
-└──────────────┘                                    └──────────────┘
+│   (Node)     │ ──── RFM95 + antenna ──────────── │  (Gateway)   │
+└──────────────┘                                   └──────────────┘
 ```
 
 - `lora_node`: creates packets periodically and sends them over LoRa.
