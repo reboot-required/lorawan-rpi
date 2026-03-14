@@ -23,9 +23,21 @@ bool LinuxSpi::Open()
     fd_ = open(device_.c_str(), O_RDWR);
     if (fd_ < 0) return false;
 
-    ioctl(fd_, SPI_IOC_WR_MODE, &mode_);
-    ioctl(fd_, SPI_IOC_WR_BITS_PER_WORD, &bits_);
-    ioctl(fd_, SPI_IOC_WR_MAX_SPEED_HZ, &speed_);
+    if (ioctl(fd_, SPI_IOC_WR_MODE, &mode_) < 0)
+    {
+        Close();
+        return false;
+    }
+    if (ioctl(fd_, SPI_IOC_WR_BITS_PER_WORD, &bits_) < 0)
+    {
+        Close();
+        return false;
+    }
+    if (ioctl(fd_, SPI_IOC_WR_MAX_SPEED_HZ, &speed_) < 0)
+    {
+        Close();
+        return false;
+    }
 
     return true;
 }

@@ -1,7 +1,5 @@
 // node_main.cpp: LoRa node application entry point.
 
-#include <cmath>
-
 #include <csignal>
 #include <cstdlib>
 #include <iostream>
@@ -14,13 +12,13 @@
 #include "linux_spi.h"
 #include "logger.h"
 #include "lora_packet.h"
+#include "radio_profile.h"
 #include "rf95_lora.h"
 
 namespace
 {
 
-volatile std::sig_atomic_t g_running         = 1;
-constexpr double           kOnlyFrequencyMhz = 868.1;
+volatile std::sig_atomic_t g_running = 1;
 
 void HandleSignal(int /*sig*/) { g_running = 0; }
 
@@ -40,7 +38,7 @@ int main(int argc, char* argv[])
 
     // --- Defaults ---
     uint32_t    device_address   = 0x01000001;
-    double      frequency        = kOnlyFrequencyMhz;
+    double      frequency        = lorawan::radio_profile::kOnlyFrequencyMhz;
     int         interval_sec     = 10;
     std::string spi_path         = "/dev/spidev0.0";
     int         spreading_factor = 7;
@@ -82,7 +80,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    if (std::fabs(frequency - kOnlyFrequencyMhz) > 0.0001)
+    if (!lorawan::radio_profile::IsAllowedFrequency(frequency))
     {
         lorawan::Logger::Error("Only 868.1 MHz is supported. Use --freq 868.1");
         return 1;
@@ -104,20 +102,22 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    gpio_cs.Init();
-    gpio_reset.Init();
-    gpio_dio0.Init();
+    if (!gpio_cs.Init() || !gpio_reset.Init() || !gpio_dio0.Init())
+    {
+        lorawan::Logger::Error("GPIO init failed - aborting");
+        return 1;
+    }
 
     lorawan::RF95Lora radio(spi, gpio_cs, gpio_reset, gpio_dio0, delay);
 
     lorawan::LoraConfig cfg;
     cfg.frequency_mhz    = frequency;
     cfg.spreading_factor = spreading_factor;
-    cfg.bandwidth_khz    = 125;
-    cfg.coding_rate      = 5;
+    cfg.bandwidth_khz    = lorawan::radio_profile::kDefaultBandwidthKhz;
+    cfg.coding_rate      = lorawan::radio_profile::kDefaultCodingRate;
     cfg.tx_power_dbm     = tx_power;
-    cfg.sync_word        = 0x34;
-    cfg.crc_enabled      = true;
+    cfg.sync_word        = static_cast<uint8_t>(lorawan::radio_profile::kDefaultSyncWord);
+    cfg.crc_enabled      = lorawan::radio_profile::kDefaultCrcEnabled;
 
     if (!radio.Initialize(cfg))
     {

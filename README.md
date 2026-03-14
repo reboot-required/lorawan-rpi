@@ -116,6 +116,20 @@ Clean build directory:
 rm -rf build
 ```
 
+## Test
+
+Build and run CTest from the same build directory:
+
+```bash
+cmake -S . -B build
+cmake --build build -j
+ctest --test-dir build --output-on-failure
+```
+
+`lora_packet_tests` validates packet round-trip serialization and CRC checks.
+When using an ARM cross-toolchain on a non-ARM host, runtime test execution is
+skipped and a placeholder CTest case is reported instead.
+
 ## Run
 
 Gateway (receiver):
