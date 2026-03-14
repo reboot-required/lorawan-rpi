@@ -98,6 +98,13 @@ cmake -S . -B build
 cmake --build build -j
 ```
 
+Preset-based builds are also supported:
+
+```bash
+cmake --preset host-debug
+cmake --build --preset host-debug -j
+```
+
 Binaries are generated at:
 
 - `build/platform_linux/lora_node`
@@ -114,6 +121,39 @@ Clean build directory:
 
 ```bash
 rm -rf build
+```
+
+## Cross-Compile For Raspberry Pi
+
+Use the dedicated `raspi-armhf` preset to produce 32-bit Raspberry Pi Linux binaries
+from an x86 Linux host with the ARMHF cross-toolchain installed:
+
+```bash
+cmake --preset raspi-armhf
+cmake --build --preset raspi-armhf -j
+```
+
+Cross-compiled binaries are generated at:
+
+- `build/raspi-armhf/platform_linux/lora_node`
+- `build/raspi-armhf/platform_linux/lora_gateway`
+
+The preset uses `cmake/toolchains/raspi-armhf.cmake` and expects:
+
+- `arm-linux-gnueabihf-gcc`
+- `arm-linux-gnueabihf-g++`
+
+If you also have a Raspberry Pi sysroot available, pass it during configure:
+
+```bash
+cmake --preset raspi-armhf -DRASPI_SYSROOT=/path/to/raspi-sysroot
+```
+
+To confirm the output architecture:
+
+```bash
+file build/raspi-armhf/platform_linux/lora_node
+file build/raspi-armhf/platform_linux/lora_gateway
 ```
 
 ## Test
@@ -176,7 +216,6 @@ sudo ./build/platform_linux/lora_node --addr 01000001 --interval 10 --spi /dev/s
 - CRC is CRC16-CCITT over header + payload
 
 ## LoRa Defaults In Code
-
 
 - Node defaults: `freq=868.1`, `sf=7`, `bw=125`, `cr=4/5`, `power=17`, `sync=0x34`
 - Gateway defaults: `freq=868.1`, `sf=7`, `bw=125`, `cr=4/5`, `power=14`, `sync=0x34`
