@@ -59,20 +59,8 @@ class Logger
     static void Error(const std::string& message);
 
    private:
-    static LogLevel current_level_;
-
-    /**
-     * @brief Internal log implementation.
-     * @param level Message severity.
-     * @param message Message text.
-     */
-    static void Log(LogLevel level, const std::string& message);
-
-    /**
-     * @brief Convert level enum to fixed-width string.
-     * @param level Severity level.
-     * @return String label.
-     */
+    static LogLevel    current_level_;
+    static void        Log(LogLevel level, const std::string& message);
     static const char* LevelToString(LogLevel level);
 };
 

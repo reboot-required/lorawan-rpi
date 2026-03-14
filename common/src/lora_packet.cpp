@@ -77,7 +77,8 @@ bool LoraPacket::Deserialize(const std::vector<uint8_t>& data, LoraPacket* packe
 
     if (body_len > 7)
     {
-        packet->payload.assign(data.begin() + 7, data.begin() + static_cast<long>(body_len));
+        packet->payload.assign(data.begin() + 7,
+                               data.begin() + static_cast<std::ptrdiff_t>(body_len));
     }
     else
     {

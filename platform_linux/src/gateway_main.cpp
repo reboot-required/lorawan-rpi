@@ -1,8 +1,6 @@
 // gateway_main.cpp: LoRa gateway application entry point.
 
 #include <csignal>
-#include <cstdlib>
-#include <iostream>
 #include <string>
 #include <thread>
 

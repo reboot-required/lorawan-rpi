@@ -20,11 +20,57 @@ std::string Hex8(uint8_t v)
     return o.str();
 }
 
-}  // namespace
+namespace reg
+{
+constexpr uint8_t kFifo               = 0x00;
+constexpr uint8_t kOpMode             = 0x01;
+constexpr uint8_t kFrfMsb             = 0x06;
+constexpr uint8_t kFrfMid             = 0x07;
+constexpr uint8_t kFrfLsb             = 0x08;
+constexpr uint8_t kPaConfig           = 0x09;
+constexpr uint8_t kOcp                = 0x0B;
+constexpr uint8_t kLna                = 0x0C;
+constexpr uint8_t kFifoAddrPtr        = 0x0D;
+constexpr uint8_t kFifoTxBaseAddr     = 0x0E;
+constexpr uint8_t kFifoRxBaseAddr     = 0x0F;
+constexpr uint8_t kFifoRxCurrentAddr  = 0x10;
+constexpr uint8_t kIrqFlags           = 0x12;
+constexpr uint8_t kRxNbBytes          = 0x13;
+constexpr uint8_t kPktSnrValue        = 0x19;
+constexpr uint8_t kPktRssiValue       = 0x1A;
+constexpr uint8_t kModemConfig1       = 0x1D;
+constexpr uint8_t kModemConfig2       = 0x1E;
+constexpr uint8_t kPreambleMsb        = 0x20;
+constexpr uint8_t kPreambleLsb        = 0x21;
+constexpr uint8_t kPayloadLength      = 0x22;
+constexpr uint8_t kModemConfig3       = 0x26;
+constexpr uint8_t kDetectOptimize     = 0x31;
+constexpr uint8_t kDetectionThreshold = 0x37;
+constexpr uint8_t kSyncWord           = 0x39;
+constexpr uint8_t kDioMapping1        = 0x40;
+constexpr uint8_t kVersion            = 0x42;
+constexpr uint8_t kPaDac              = 0x4D;
+}  // namespace reg
 
-// --------------------------------------------------------------------
-// Construction / Destruction
-// --------------------------------------------------------------------
+namespace mode
+{
+constexpr uint8_t kLoRa         = 0x80;
+constexpr uint8_t kSleep        = 0x00;
+constexpr uint8_t kStandby      = 0x01;
+constexpr uint8_t kTx           = 0x03;
+constexpr uint8_t kRxContinuous = 0x05;
+constexpr uint8_t kRxSingle     = 0x06;
+}  // namespace mode
+
+namespace irq
+{
+constexpr uint8_t kRxTimeout       = 0x80;
+constexpr uint8_t kRxDone          = 0x40;
+constexpr uint8_t kPayloadCrcError = 0x20;
+constexpr uint8_t kTxDone          = 0x08;
+}  // namespace irq
+
+}  // namespace
 
 RF95Lora::RF95Lora(hal::SpiHal& spi, hal::GpioHal& cs, hal::GpioHal& reset, hal::GpioHal& dio0,
                    hal::DelayHal& delay)
@@ -40,19 +86,17 @@ RF95Lora::~RF95Lora()
     }
 }
 
-// --------------------------------------------------------------------
-// Public API
-// --------------------------------------------------------------------
-
 bool RF95Lora::Initialize(const LoraConfig& config)
 {
+    config_ = config;
+
     reset_gpio_.SetLow();
     delay_.DelayMs(10);
 
     reset_gpio_.SetHigh();
     delay_.DelayMs(10);
 
-    // --- Verify chip ID -----------------------------------------------
+    // Verify chip ID
     uint8_t version = ReadVersion();
     if (version != 0x12)
     {
@@ -61,15 +105,15 @@ bool RF95Lora::Initialize(const LoraConfig& config)
     }
     Logger::Info("RF95/SX1276 detected (version " + Hex8(version) + ")");
 
-    // --- Switch to LoRa sleep mode ------------------------------------
+    // Switch to LoRa sleep mode
     WriteRegister(reg::kOpMode, mode::kLoRa | mode::kSleep);
     delay_.DelayMs(10);
 
-    // --- Standby mode -------------------------------------------------
+    // Enter standby
     SetMode(mode::kStandby);
     delay_.DelayMs(10);
 
-    // --- Apply radio parameters ---------------------------------------
+    // Apply radio parameters
     ConfigureFrequency(config_.frequency_mhz);
     ConfigureTxPower(config_.tx_power_dbm);
     ConfigureSpreadingFactor(config_.spreading_factor);
@@ -280,22 +324,6 @@ bool RF95Lora::CheckForPacket(ReceivedPacket* packet)
 
 uint8_t RF95Lora::ReadVersion() { return ReadRegister(reg::kVersion); }
 
-// --------------------------------------------------------------------
-// Private helpers
-// --------------------------------------------------------------------
-
-void RF95Lora::HardReset()
-{
-    if (!reset_gpio_.Read())
-    {
-        return;
-    }
-    reset_gpio_.SetLow();
-    delay_.DelayMs(10);
-    reset_gpio_.SetHigh();
-    delay_.DelayMs(10);
-}
-
 void RF95Lora::SetMode(uint8_t chip_mode) { WriteRegister(reg::kOpMode, mode::kLoRa | chip_mode); }
 
 void RF95Lora::ConfigureFrequency(double mhz)
@@ -402,8 +430,6 @@ void RF95Lora::ConfigurePreamble(int symbols)
     WriteRegister(reg::kPreambleMsb, static_cast<uint8_t>((symbols >> 8) & 0xFF));
     WriteRegister(reg::kPreambleLsb, static_cast<uint8_t>(symbols & 0xFF));
 }
-
-// ---- Low-level SPI register access ------------------------------------
 
 uint8_t RF95Lora::ReadRegister(uint8_t addr)
 {

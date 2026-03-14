@@ -1,7 +1,6 @@
 // node_main.cpp: LoRa node application entry point.
 
 #include <csignal>
-#include <cstdlib>
 #include <iostream>
 #include <string>
 #include <thread>

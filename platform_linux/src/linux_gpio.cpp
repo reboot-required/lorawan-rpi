@@ -6,7 +6,6 @@
 
 #include <sys/stat.h>
 #include <chrono>
-#include <cstdlib>
 #include <fstream>
 #include <thread>
 
