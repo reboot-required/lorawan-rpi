@@ -1,0 +1,57 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 31,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "host-debug",
+      "displayName": "Host Debug",
+      "description": "Native Linux build for the current machine",
+      "binaryDir": "${sourceDir}/build/host-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "name": "raspi-armhf",
+      "displayName": "Raspberry Pi ARMHF",
+      "description": "Cross-compile for 32-bit Raspberry Pi Linux using arm-linux-gnueabihf-gcc/g++",
+      "binaryDir": "${sourceDir}/build/raspi-armhf",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/raspi-armhf.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "host-debug",
+      "configurePreset": "host-debug"
+    },
+    {
+      "name": "raspi-armhf",
+      "configurePreset": "raspi-armhf"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "host-debug",
+      "configurePreset": "host-debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "raspi-armhf",
+      "configurePreset": "raspi-armhf",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

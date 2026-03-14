@@ -39,3 +39,10 @@
 
 # debug information files
 *.dwo
+
+build/
+build-host-auto/
+build-host-nogpiod/
+*.swp
+*.swo
+*~
