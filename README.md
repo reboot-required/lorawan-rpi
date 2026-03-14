@@ -177,7 +177,6 @@ sudo ./build/platform_linux/lora_node --addr 01000001 --interval 10 --spi /dev/s
 
 ## LoRa Defaults In Code
 
-
 - Node defaults: `freq=868.1`, `sf=7`, `bw=125`, `cr=4/5`, `power=17`, `sync=0x34`
 - Gateway defaults: `freq=868.1`, `sf=7`, `bw=125`, `cr=4/5`, `power=14`, `sync=0x34`
 
