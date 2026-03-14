@@ -1,0 +1,29 @@
+name: CMake Build for Raspberry Pi
+
+on:
+  push:
+    branches:
+      - main
+      - development
+
+jobs:
+  build-arm:
+    runs-on: ubuntu-latest
+    name: Build for ARM (Raspberry Pi)
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install ARM toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf cmake build-essential
+      
+      - name: Create build directory
+        run: mkdir -p build-arm
+      
+      - name: Configure CMake for ARM
+        run: cd build-arm && cmake -DCMAKE_C_COMPILER=arm-linux-gnueabihf-gcc -DCMAKE_CXX_COMPILER=arm-linux-gnueabihf-g++ ..
+      
+      - name: Build for Raspberry Pi
+        run: cd build-arm && cmake --build .
