@@ -81,12 +81,6 @@ int main(int argc, char* argv[])
     cfg.sync_word        = static_cast<uint8_t>(lorawan::radio_profile::kDefaultSyncWord);
     cfg.crc_enabled      = lorawan::radio_profile::kDefaultCrcEnabled;
 
-    if (!gpio_cs.Init() || !gpio_reset.Init() || !gpio_dio0.Init())
-    {
-        lorawan::Logger::Error("GPIO init failed - aborting");
-        return 1;
-    }
-
     if (!radio.Initialize(cfg))
     {
         lorawan::Logger::Error("RF95 init failed – aborting");

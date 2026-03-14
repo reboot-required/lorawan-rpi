@@ -7,6 +7,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
+#include <cstdint>
 #include <cstring>
 
 namespace lorawan
@@ -56,8 +57,8 @@ bool LinuxSpi::Transfer(const uint8_t* tx, uint8_t* rx, size_t len)
     if (fd_ < 0) return false;
 
     spi_ioc_transfer tr{};
-    tr.tx_buf        = (unsigned long)tx;
-    tr.rx_buf        = (unsigned long)rx;
+    tr.tx_buf        = static_cast<__u64>(reinterpret_cast<std::uintptr_t>(tx));
+    tr.rx_buf        = static_cast<__u64>(reinterpret_cast<std::uintptr_t>(rx));
     tr.len           = len;
     tr.speed_hz      = speed_;
     tr.bits_per_word = bits_;

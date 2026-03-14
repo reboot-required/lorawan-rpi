@@ -2,7 +2,6 @@
 
 #include "logger.h"
 
-#include <chrono>
 #include <ctime>
 #include <iomanip>
 #include <iostream>
@@ -30,13 +29,14 @@ void Logger::Log(LogLevel level, const std::string& message)
         return;
     }
 
-    auto now    = std::chrono::system_clock::now();
-    auto time_c = std::chrono::system_clock::to_time_t(now);
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+    std::timespec ts{};
+    std::timespec_get(&ts, TIME_UTC);
+    auto time_c = static_cast<std::time_t>(ts.tv_sec);
+    auto ms     = static_cast<int>(ts.tv_nsec / 1000000);
 
     std::ostringstream oss;
     oss << std::put_time(std::localtime(&time_c), "%H:%M:%S") << "." << std::setfill('0')
-        << std::setw(3) << ms.count() << " [" << LevelToString(level) << "] " << message;
+        << std::setw(3) << ms << " [" << LevelToString(level) << "] " << message;
 
     if (level >= LogLevel::kError)
     {

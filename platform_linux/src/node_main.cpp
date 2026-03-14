@@ -102,12 +102,6 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    if (!gpio_cs.Init() || !gpio_reset.Init() || !gpio_dio0.Init())
-    {
-        lorawan::Logger::Error("GPIO init failed - aborting");
-        return 1;
-    }
-
     lorawan::RF95Lora radio(spi, gpio_cs, gpio_reset, gpio_dio0, delay);
 
     lorawan::LoraConfig cfg;

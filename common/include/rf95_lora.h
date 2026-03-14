@@ -224,14 +224,14 @@ class RF95Lora
      * @param buf Destination buffer.
      * @param len Number of bytes.
      */
-    void ReadFifo(uint8_t* buf, uint8_t len);
+    bool ReadFifo(uint8_t* buf, uint8_t len);
 
     /**
      * @brief Write bytes to FIFO.
      * @param buf Source bytes.
      * @param len Number of bytes.
      */
-    void WriteFifo(const uint8_t* buf, uint8_t len);
+    bool WriteFifo(const uint8_t* buf, uint8_t len);
 
     /**
      * @brief Read and populate RSSI/SNR metrics for a packet.

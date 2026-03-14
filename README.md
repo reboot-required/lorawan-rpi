@@ -65,7 +65,7 @@ MISO             GPIO 9  / SPI0_MISO (Pin 21)
 MOSI             GPIO 10 / SPI0_MOSI (Pin 19)
 SCK              GPIO 11 / SPI0_SCLK (Pin 23)
 NSS/CS           GPIO 8  / SPI0_CE0  (Pin 24)
-RESET            GPIO 25             (Pin 22)
+RESET            GPIO 23             (Pin 16)
 DIO0             GPIO 24             (Pin 18)
 ```
 

@@ -2,11 +2,9 @@
 
 #include "rf95_lora.h"
 
-#include <chrono>
 #include <cstring>
 #include <iomanip>
 #include <sstream>
-#include <thread>
 
 #include "logger.h"
 
@@ -48,10 +46,6 @@ RF95Lora::~RF95Lora()
 
 bool RF95Lora::Initialize(const LoraConfig& config)
 {
-    reset_gpio_.Init();
-    cs_gpio_.Init();
-    dio0_gpio_.Init();
-
     reset_gpio_.SetLow();
     delay_.DelayMs(10);
 
@@ -138,7 +132,12 @@ bool RF95Lora::SendPacket(const std::vector<uint8_t>& data)
 
     // Point FIFO to TX base and write payload.
     WriteRegister(reg::kFifoAddrPtr, 0x00);
-    WriteFifo(data.data(), static_cast<uint8_t>(data.size()));
+    if (!WriteFifo(data.data(), static_cast<uint8_t>(data.size())))
+    {
+        Logger::Error("SendPacket: SPI write to FIFO failed");
+        SetMode(mode::kStandby);
+        return false;
+    }
     WriteRegister(reg::kPayloadLength, static_cast<uint8_t>(data.size()));
 
     // Clear all IRQ flags, then start TX.
@@ -181,7 +180,7 @@ bool RF95Lora::ReceivePacket(ReceivedPacket* packet, int timeout_ms)
     WriteRegister(reg::kFifoAddrPtr, ReadRegister(reg::kFifoRxBaseAddr));
     SetMode(mode::kRxSingle);
 
-    // auto t0 = std::chrono::steady_clock::now();
+    int elapsed_ms = 0;
     while (true)
     {
         uint8_t flags = ReadRegister(reg::kIrqFlags);
@@ -198,7 +197,13 @@ bool RF95Lora::ReceivePacket(ReceivedPacket* packet, int timeout_ms)
             uint8_t len = ReadRegister(reg::kRxNbBytes);
             WriteRegister(reg::kFifoAddrPtr, ReadRegister(reg::kFifoRxCurrentAddr));
             packet->payload.resize(len);
-            ReadFifo(packet->payload.data(), len);
+            if (!ReadFifo(packet->payload.data(), len))
+            {
+                Logger::Error("ReceivePacket: SPI read from FIFO failed");
+                SetMode(mode::kStandby);
+                WriteRegister(reg::kIrqFlags, 0xFF);
+                return false;
+            }
             ReadSignalQuality(packet);
             WriteRegister(reg::kIrqFlags, 0xFF);
             return true;
@@ -207,16 +212,19 @@ bool RF95Lora::ReceivePacket(ReceivedPacket* packet, int timeout_ms)
         if (flags & irq::kRxTimeout)
         {
             WriteRegister(reg::kIrqFlags, 0xFF);
+            SetMode(mode::kStandby);
             return false;
         }
 
-        // auto dt = std::chrono::steady_clock::now() - t0;
-        // if (std::chrono::duration_cast<std::chrono::milliseconds>(dt).count() > timeout_ms)
-        // {
-        //     SetMode(mode::kStandby);
-        //     return false;
-        // }
+        if (timeout_ms >= 0 && elapsed_ms >= timeout_ms)
+        {
+            Logger::Warning("ReceivePacket: software timeout");
+            WriteRegister(reg::kIrqFlags, 0xFF);
+            SetMode(mode::kStandby);
+            return false;
+        }
         delay_.DelayMs(1);
+        elapsed_ms += 1;
     }
 }
 
@@ -257,7 +265,12 @@ bool RF95Lora::CheckForPacket(ReceivedPacket* packet)
     WriteRegister(reg::kFifoAddrPtr, ReadRegister(reg::kFifoRxCurrentAddr));
 
     packet->payload.resize(len);
-    ReadFifo(packet->payload.data(), len);
+    if (!ReadFifo(packet->payload.data(), len))
+    {
+        Logger::Error("CheckForPacket: SPI read from FIFO failed");
+        WriteRegister(reg::kIrqFlags, 0xFF);
+        return false;
+    }
     ReadSignalQuality(packet);
 
     // Clear flags and stay in RX-continuous.
@@ -396,7 +409,11 @@ uint8_t RF95Lora::ReadRegister(uint8_t addr)
 {
     uint8_t tx[2] = {static_cast<uint8_t>(addr & 0x7F), 0x00};
     uint8_t rx[2] = {0, 0};
-    spi_.Transfer(tx, rx, 2);
+    if (!spi_.Transfer(tx, rx, 2))
+    {
+        Logger::Error("ReadRegister: SPI transfer failed at addr " + Hex8(addr));
+        return 0;
+    }
     return rx[1];
 }
 
@@ -404,25 +421,38 @@ void RF95Lora::WriteRegister(uint8_t addr, uint8_t value)
 {
     uint8_t tx[2] = {static_cast<uint8_t>(addr | 0x80), value};
     uint8_t rx[2] = {0, 0};
-    spi_.Transfer(tx, rx, 2);
+    if (!spi_.Transfer(tx, rx, 2))
+    {
+        Logger::Error("WriteRegister: SPI transfer failed at addr " + Hex8(addr));
+    }
 }
 
-void RF95Lora::ReadFifo(uint8_t* buf, uint8_t len)
+bool RF95Lora::ReadFifo(uint8_t* buf, uint8_t len)
 {
     std::vector<uint8_t> tx(len + 1, 0x00);
     std::vector<uint8_t> rx(len + 1, 0x00);
     tx[0] = reg::kFifo & 0x7F;  // read
-    spi_.Transfer(tx.data(), rx.data(), len + 1);
+    if (!spi_.Transfer(tx.data(), rx.data(), len + 1))
+    {
+        Logger::Error("ReadFifo: SPI transfer failed");
+        return false;
+    }
     std::memcpy(buf, rx.data() + 1, len);
+    return true;
 }
 
-void RF95Lora::WriteFifo(const uint8_t* buf, uint8_t len)
+bool RF95Lora::WriteFifo(const uint8_t* buf, uint8_t len)
 {
     std::vector<uint8_t> tx(len + 1);
     std::vector<uint8_t> rx(len + 1, 0);
     tx[0] = reg::kFifo | 0x80;  // write
     std::memcpy(tx.data() + 1, buf, len);
-    spi_.Transfer(tx.data(), rx.data(), len + 1);
+    if (!spi_.Transfer(tx.data(), rx.data(), len + 1))
+    {
+        Logger::Error("WriteFifo: SPI transfer failed");
+        return false;
+    }
+    return true;
 }
 
 void RF95Lora::ReadSignalQuality(ReceivedPacket* pkt)
