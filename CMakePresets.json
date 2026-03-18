@@ -26,6 +26,17 @@
         "CMAKE_BUILD_TYPE": "Release",
         "BUILD_TESTING": "ON"
       }
+    },
+    {
+      "name": "raspi-aarch64",
+      "displayName": "Raspberry Pi AArch64",
+      "description": "Cross-compile for 64-bit Raspberry Pi OS (Pi 5 / Pi 4) using aarch64-linux-gnu-gcc/g++",
+      "binaryDir": "${sourceDir}/build/raspi-aarch64",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/raspi-aarch64.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -36,6 +47,10 @@
     {
       "name": "raspi-armhf",
       "configurePreset": "raspi-armhf"
+    },
+    {
+      "name": "raspi-aarch64",
+      "configurePreset": "raspi-aarch64"
     }
   ],
   "testPresets": [
@@ -49,6 +64,13 @@
     {
       "name": "raspi-armhf",
       "configurePreset": "raspi-armhf",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "raspi-aarch64",
+      "configurePreset": "raspi-aarch64",
       "output": {
         "outputOnFailure": true
       }

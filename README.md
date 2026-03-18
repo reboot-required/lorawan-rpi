@@ -134,36 +134,84 @@ rm -rf build
 
 ## Cross-Compile For Raspberry Pi
 
-Use the dedicated `raspi-armhf` preset to produce 32-bit Raspberry Pi Linux binaries
-from an x86 Linux host with the ARMHF cross-toolchain installed:
+Two presets cover the two common Raspberry Pi OS variants.
+
+### 32-bit (Pi 3B+ / Pi Zero 2 W) – `raspi-armhf`
+
+Requires the ARMHF cross-toolchain:
+
+```bash
+sudo apt-get install gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
+```
+
+Build:
 
 ```bash
 cmake --preset raspi-armhf
 cmake --build --preset raspi-armhf -j
 ```
 
-Cross-compiled binaries are generated at:
+Binaries:
 
 - `build/raspi-armhf/platform_linux/lora_node`
 - `build/raspi-armhf/platform_linux/lora_gateway`
 
-The preset uses `cmake/toolchains/raspi-armhf.cmake` and expects:
+### 64-bit (Pi 5 / Pi 4) – `raspi-aarch64`
 
-- `arm-linux-gnueabihf-gcc`
-- `arm-linux-gnueabihf-g++`
+Raspberry Pi OS for the Pi 5 ships as 64-bit by default. Use the `raspi-aarch64`
+preset instead of `raspi-armhf` to produce a native AArch64 binary.
 
-If you also have a Raspberry Pi sysroot available, pass it during configure:
+Requires the AArch64 cross-toolchain:
 
 ```bash
-cmake --preset raspi-armhf -DRASPI_SYSROOT=/path/to/raspi-sysroot
+sudo apt-get install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 ```
 
-To confirm the output architecture:
+Build:
+
+```bash
+cmake --preset raspi-aarch64
+cmake --build --preset raspi-aarch64 -j
+```
+
+Binaries:
+
+- `build/raspi-aarch64/platform_linux/lora_node`
+- `build/raspi-aarch64/platform_linux/lora_gateway`
+
+### Optional sysroot
+
+If you have a Raspberry Pi sysroot available for either preset, pass it during configure:
+
+```bash
+cmake --preset raspi-armhf   -DRASPI_SYSROOT=/path/to/raspi-sysroot
+cmake --preset raspi-aarch64 -DRASPI_SYSROOT=/path/to/raspi-sysroot
+```
+
+### Verify output architecture
 
 ```bash
 file build/raspi-armhf/platform_linux/lora_node
-file build/raspi-armhf/platform_linux/lora_gateway
+file build/raspi-aarch64/platform_linux/lora_node
 ```
+
+## Deploy
+
+Copy the cross-compiled binaries to the target Pi over SSH:
+
+```bash
+# Pi Zero 2 W / 32-bit OS
+scp build/raspi-armhf/platform_linux/lora_node     pi@<NODE_IP>:~/
+scp build/raspi-armhf/platform_linux/lora_gateway  pi@<GATEWAY_IP>:~/
+
+# Pi 5 / 64-bit OS
+scp build/raspi-aarch64/platform_linux/lora_node     pi@<NODE_IP>:~/
+scp build/raspi-aarch64/platform_linux/lora_gateway  pi@<GATEWAY_IP>:~/
+```
+
+Replace `pi@<NODE_IP>` and `pi@<GATEWAY_IP>` with the actual user and IP address
+of each board. After copying, run the binaries directly on the Pi as shown in the
+[Run](#run) section.
 
 ## Test
 
