@@ -9,7 +9,11 @@ find_program(LORAWAN_RASPI_AARCH64_GCC aarch64-linux-gnu-gcc)
 find_program(LORAWAN_RASPI_AARCH64_GXX aarch64-linux-gnu-g++)
 
 if(NOT LORAWAN_RASPI_AARCH64_GCC OR NOT LORAWAN_RASPI_AARCH64_GXX)
-    message(FATAL_ERROR "aarch64-linux-gnu-gcc/g++ not found. Install the AArch64 cross-toolchain:\n  sudo apt-get install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu")
+    message(FATAL_ERROR "aarch64-linux-gnu-gcc/g++ not found.\n"
+                        "Please install an AArch64 (aarch64-linux-gnu) cross-compiler toolchain\n"
+                        "(for example, the gcc-aarch64-linux-gnu and g++-aarch64-linux-gnu packages\n"
+                        "on Debian/Ubuntu), or specify your compilers explicitly via CMAKE_C_COMPILER\n"
+                        "and CMAKE_CXX_COMPILER or the LORAWAN_RASPI_AARCH64_GCC/GXX cache variables.")
 endif()
 
 set(CMAKE_C_COMPILER "${LORAWAN_RASPI_AARCH64_GCC}" CACHE FILEPATH "C compiler" FORCE)
