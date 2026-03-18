@@ -192,7 +192,9 @@ cmake --preset raspi-aarch64 -DRASPI_SYSROOT=/path/to/raspi-sysroot
 
 ```bash
 file build/raspi-armhf/platform_linux/lora_node
+file build/raspi-armhf/platform_linux/lora_gateway
 file build/raspi-aarch64/platform_linux/lora_node
+file build/raspi-aarch64/platform_linux/lora_gateway
 ```
 
 ## Deploy
