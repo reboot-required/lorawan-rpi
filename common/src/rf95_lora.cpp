@@ -72,9 +72,8 @@ constexpr uint8_t kTxDone          = 0x08;
 
 }  // namespace
 
-RF95Lora::RF95Lora(hal::SpiHal& spi, hal::GpioHal& cs, hal::GpioHal& reset, hal::GpioHal& dio0,
-                   hal::DelayHal& delay)
-    : spi_(spi), cs_gpio_(cs), reset_gpio_(reset), dio0_gpio_(dio0), delay_(delay)
+RF95Lora::RF95Lora(hal::SpiHal& spi, hal::GpioHal& reset, hal::GpioHal& dio0, hal::DelayHal& delay)
+    : spi_(spi), reset_gpio_(reset), dio0_gpio_(dio0), delay_(delay)
 {
 }
 
@@ -288,6 +287,12 @@ void RF95Lora::StartReceive()
 bool RF95Lora::CheckForPacket(ReceivedPacket* packet)
 {
     if (!initialized_ || packet == nullptr)
+    {
+        return false;
+    }
+
+    const int dio0_state = dio0_gpio_.Read();
+    if (dio0_state == 0)
     {
         return false;
     }

@@ -1,86 +1,139 @@
-// linux_gpio.cpp: Linux sysfs GPIO HAL implementation.
+// linux_gpio.cpp: Linux libgpiod GPIO HAL implementation.
 
 #include "linux_gpio.h"
 
 #include "logger.h"
 
-#include <sys/stat.h>
-#include <chrono>
-#include <fstream>
-#include <thread>
+#include <cerrno>
+#include <cstring>
 
 namespace lorawan
 {
 namespace rpi_linux
 {
 
-namespace
-{
-
-bool PathExists(const std::string& path)
-{
-    struct stat st{};
-    return stat(path.c_str(), &st) == 0;
-}
-
-}  // namespace
-
-LinuxGpio::LinuxGpio(int pin, bool output)
-    : pin_(pin), output_(output), base_("/sys/class/gpio/gpio" + std::to_string(pin))
+LinuxGpio::LinuxGpio(int pin, bool output, const std::string& chip_name)
+    : pin_(pin), output_(output), chip_name_(chip_name)
 {
 }
+
+LinuxGpio::~LinuxGpio() { Release(); }
 
 bool LinuxGpio::Init()
 {
-    if (!PathExists(base_) && !WriteFile("/sys/class/gpio/export", std::to_string(pin_)))
+    if (initialized_)
     {
-        Logger::Error("Failed to export GPIO pin " + std::to_string(pin_));
+        return true;
+    }
+
+#ifdef LORAWAN_HAVE_LIBGPIOD
+    chip_ = gpiod_chip_open_by_name(chip_name_.c_str());
+    if (chip_ == nullptr)
+    {
+        Logger::Error("Failed to open GPIO chip " + chip_name_ + ": " + std::strerror(errno));
         return false;
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-    if (!WriteFile(base_ + "/direction", output_ ? "out" : "in"))
+    line_ = gpiod_chip_get_line(chip_, pin_);
+    if (line_ == nullptr)
     {
-        Logger::Error("Failed to set GPIO direction for pin " + std::to_string(pin_));
+        Logger::Error("Failed to acquire GPIO line " + std::to_string(pin_) + ": " +
+                      std::strerror(errno));
+        Release();
         return false;
     }
 
+    const int request_status = output_ ? gpiod_line_request_output(line_, "lorawan-rpi", 0)
+                                       : gpiod_line_request_input(line_, "lorawan-rpi");
+    if (request_status < 0)
+    {
+        Logger::Error("Failed to request GPIO line " + std::to_string(pin_) + ": " +
+                      std::strerror(errno));
+        Release();
+        return false;
+    }
+
+    initialized_ = true;
     return true;
+#else
+    Logger::Error("GPIO backend unavailable: libgpiod was not found at build time");
+    return false;
+#endif
 }
 
 void LinuxGpio::SetHigh()
 {
-    if (output_) WriteFile(base_ + "/value", "1");
+#ifdef LORAWAN_HAVE_LIBGPIOD
+    if (!initialized_ || !output_)
+    {
+        return;
+    }
+
+    if (gpiod_line_set_value(line_, 1) < 0)
+    {
+        Logger::Error("Failed to drive GPIO line " + std::to_string(pin_) +
+                      " high: " + std::strerror(errno));
+    }
+#else
+    (void)pin_;
+#endif
 }
 
 void LinuxGpio::SetLow()
 {
-    if (output_) WriteFile(base_ + "/value", "0");
+#ifdef LORAWAN_HAVE_LIBGPIOD
+    if (!initialized_ || !output_)
+    {
+        return;
+    }
+
+    if (gpiod_line_set_value(line_, 0) < 0)
+    {
+        Logger::Error("Failed to drive GPIO line " + std::to_string(pin_) +
+                      " low: " + std::strerror(errno));
+    }
+#else
+    (void)pin_;
+#endif
 }
 
 int LinuxGpio::Read()
 {
-    std::string v = ReadFile(base_ + "/value");
-    if (v.empty()) return -1;
-    return v[0] == '1';
+#ifdef LORAWAN_HAVE_LIBGPIOD
+    if (!initialized_)
+    {
+        return -1;
+    }
+
+    const int value = gpiod_line_get_value(line_);
+    if (value < 0)
+    {
+        Logger::Error("Failed to read GPIO line " + std::to_string(pin_) + ": " +
+                      std::strerror(errno));
+    }
+    return value;
+#else
+    return -1;
+#endif
 }
 
-bool LinuxGpio::WriteFile(const std::string& path, const std::string& value)
+void LinuxGpio::Release()
 {
-    std::ofstream f(path);
-    if (!f.is_open()) return false;
-    f << value;
-    return static_cast<bool>(f);
-}
+#ifdef LORAWAN_HAVE_LIBGPIOD
+    if (line_ != nullptr)
+    {
+        gpiod_line_release(line_);
+        line_ = nullptr;
+    }
 
-std::string LinuxGpio::ReadFile(const std::string& path)
-{
-    std::ifstream f(path);
-    if (!f.is_open()) return "";
-    std::string v;
-    std::getline(f, v);
-    return v;
+    if (chip_ != nullptr)
+    {
+        gpiod_chip_close(chip_);
+        chip_ = nullptr;
+    }
+
+    initialized_ = false;
+#endif
 }
 
 }  // namespace rpi_linux

@@ -46,8 +46,7 @@ struct ReceivedPacket
 class RF95Lora
 {
    public:
-    RF95Lora(hal::SpiHal& spi, hal::GpioHal& cs, hal::GpioHal& reset, hal::GpioHal& dio0,
-             hal::DelayHal& delay);
+    RF95Lora(hal::SpiHal& spi, hal::GpioHal& reset, hal::GpioHal& dio0, hal::DelayHal& delay);
     ~RF95Lora();
     RF95Lora(const RF95Lora&)            = delete;
     RF95Lora& operator=(const RF95Lora&) = delete;
@@ -89,7 +88,6 @@ class RF95Lora
     void    ReadSignalQuality(ReceivedPacket* pkt);
 
     hal::SpiHal&   spi_;
-    hal::GpioHal&  cs_gpio_;
     hal::GpioHal&  reset_gpio_;
     hal::GpioHal&  dio0_gpio_;
     hal::DelayHal& delay_;
