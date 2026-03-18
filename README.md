@@ -136,7 +136,7 @@ rm -rf build
 
 Two presets cover the two common Raspberry Pi OS variants.
 
-### 32-bit (Pi 3B+ / Pi Zero 2 W) – `raspi-armhf`
+### 32-bit Raspberry Pi OS (Pi 3B+ / Pi Zero 2 W) – `raspi-armhf`
 
 Requires the ARMHF cross-toolchain:
 
