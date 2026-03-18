@@ -17,7 +17,7 @@ raspi-config nonint do_spi 0
 
 echo "[2/3] Installing build tools..."
 apt-get update -qq
-apt-get install -y -qq build-essential cmake
+apt-get install -y -qq build-essential cmake libgpiod-dev
 
 echo "[3/3] Checking SPI device..."
 if [ -e /dev/spidev0.0 ]; then

@@ -50,23 +50,27 @@ lorawan-rpi/
 
 ### Components (per side)
 
-- 1x Raspberry Pi (3B+/4/5/Zero 2W)
+- 1x Raspberry Pi (3B+/4/5/Zero 2 W)
 - 1x RFM95W (868 MHz) module
 - 1x matching antenna for your band
 - jumper wires / breadboard
 
 ### Wiring RFM module to Raspberry Pi (BCM)
 
+The Linux applications use `/dev/spidev0.0` for SPI chip select and request
+GPIO lines `RESET=25` and `DIO0=24` through libgpiod.
+
 ```text
-RFM module       Raspberry Pi
-VCC              3.3V (Pin 1)
-GND              GND  (Pin 6)
-MISO             GPIO 9  / SPI0_MISO (Pin 21)
-MOSI             GPIO 10 / SPI0_MOSI (Pin 19)
-SCK              GPIO 11 / SPI0_SCLK (Pin 23)
-NSS/CS           GPIO 8  / SPI0_CE0  (Pin 24)
-RESET            GPIO 23             (Pin 16)
-DIO0             GPIO 24             (Pin 18)
+RFM95W                 Raspberry Pi
+------                 -------------
+VCC      ----------->  3.3V   (Pin 1)
+GND      ----------->  GND    (Pin 6)
+MISO     ----------->  GPIO 9 / SPI0_MISO (Pin 21)
+MOSI     ----------->  GPIO 10 / SPI0_MOSI (Pin 19)
+SCK      ----------->  GPIO 11 / SPI0_SCLK (Pin 23)
+NSS/CS   ----------->  GPIO 8 / SPI0_CE0   (Pin 24)
+RESET    ----------->  GPIO 25             (Pin 22)
+DIO0     ----------->  GPIO 24             (Pin 18)
 ```
 
 Always connect an antenna before transmitting.
@@ -77,10 +81,15 @@ Install dependencies and enable SPI:
 
 ```bash
 sudo apt-get update
-sudo apt-get install -y build-essential cmake
+sudo apt-get install -y build-essential cmake libgpiod-dev
 sudo raspi-config nonint do_spi 0
 sudo reboot
 ```
+
+For native x86 development builds, configuration can proceed without
+`libgpiod-dev`. In that case CMake falls back to a stub GPIO backend so the
+code compiles, but the Linux applications will fail during GPIO initialization
+at runtime.
 
 Or run the project setup script:
 
@@ -184,7 +193,7 @@ Node (sender):
 sudo ./build/platform_linux/lora_node --addr 01000001 --interval 10 --spi /dev/spidev0.0 --sf 7 --power 17
 ```
 
-`sudo` is typically required for `/dev/spidev*` and GPIO access.
+`sudo` is typically required for `/dev/spidev*` and libgpiod-based GPIO access.
 
 ## Command-Line Options
 
@@ -225,15 +234,18 @@ frequency is passed via `--freq`, the application exits with an error.
 
 ## Regulatory Note (Germany)
 
-For this project, use only `868.1 MHz`. The implementation and examples are
-intentionally restricted to `868.1 MHz`, and in Germany this is the only
-frequency intended/allowed for operation in this repository.
+For this project, use only `868.1 MHz`. The applications intentionally accept
+only that frequency to keep the operating profile narrow and reproducible.
+
+This is not a substitute for verifying local regulatory requirements such as
+allowed channels, duty-cycle limits, transmit power, and antenna rules before
+you transmit.
 
 ## Notes
 
-- `README.md` is now aligned with the current codebase (Linux + CMake).
-- The previous `README.md` content describing ESP32 and `scripts/setup_rpi.sh`
-  does not match files present in this repository.
+- The Linux HAL implementations use `/dev/spidev*` for SPI and `/sys/class/gpio`
+  for GPIO.
+- Packet tests cover serialization round-trips and CRC validation.
 
 ## License
 

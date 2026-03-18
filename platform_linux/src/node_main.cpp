@@ -90,7 +90,6 @@ int main(int argc, char* argv[])
 
     // --- Hardware init ---
     lorawan::rpi_linux::LinuxSpi   spi(spi_path);
-    lorawan::rpi_linux::LinuxGpio  gpio_cs(8, true);
     lorawan::rpi_linux::LinuxGpio  gpio_reset(25, true);
     lorawan::rpi_linux::LinuxGpio  gpio_dio0(24, false);
     lorawan::rpi_linux::LinuxDelay delay;
@@ -101,7 +100,13 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    lorawan::RF95Lora radio(spi, gpio_cs, gpio_reset, gpio_dio0, delay);
+    if (!gpio_reset.Init() || !gpio_dio0.Init())
+    {
+        lorawan::Logger::Error("GPIO init failed – aborting");
+        return 1;
+    }
+
+    lorawan::RF95Lora radio(spi, gpio_reset, gpio_dio0, delay);
 
     lorawan::LoraConfig cfg;
     cfg.frequency_mhz    = frequency;
